@@ -1,5 +1,5 @@
 import { IncomingMessage, ServerResponse } from "http";
-import { protectedRout } from "./auth.js";
+import { loginRoute, protectedRout, signupRoute } from "./auth.js";
 import { ERROR_401 } from "./const.js";
 
 const exampleData = {
@@ -16,19 +16,19 @@ export const mainRoute = (req: IncomingMessage, res: ServerResponse) => {
   res.setHeader("Content-Type", "text/html");
   res.write("<h1>Hello Yedidi! API:</h1>");
   res.write(`<ul>
-      <li>segel info. GET /api/segel</li>
       <li>signin. POST /api/signin</li>
       <li>login. POST /api/login</li>      
   </ul>`);
   res.end();
 };
 
-export const getExample = (req: IncomingMessage, res: ServerResponse) => {
-  const user = protectedRout(req, res);
-  if (user !== ERROR_401) {
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json");
-    res.write(JSON.stringify({ data: { ...exampleData }, user: { ...user } })); // build in js function, to convert json to a string
-    res.end();
-  }
+export const routes: Object = {
+  'GET /api/product/[0-9]*': mainRoute,
+  'GET /api/product/[A-Za-z]*': mainRoute,
+  'POST /api/product': mainRoute,
+  'PUT /api/product': mainRoute,
+  'DELETE /api/product': mainRoute,
+  'POST /api/signup': signupRoute,
+  'POST /api/login': loginRoute,
+  'PUT /api/permission': mainRoute,
 };
