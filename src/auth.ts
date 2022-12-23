@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 import { ERROR_401 } from "./const.js";
 
 // TODO: You need to config SERCRET_KEY in render.com dashboard, under Environment section.
-const secretKey = process.env.SECRET_KEY || "your_secret_key";
+const secretKey = process.env.SECRET_KEY;
 
 // TODO: Replace with your user database
 const users = [];
@@ -28,7 +28,15 @@ export const protectedRout = (req: IncomingMessage, res: ServerResponse) => {
 
   // authorization header needs to look like that: Bearer <JWT>.
   // So, we just take to <JWT>.
-  // TODO: You need to validate it.
+  if (!authHeader.match('Bearer [0-9A-Za-z\\\+=\.]*')) {
+    res.statusCode = 401;
+    res.end(
+      JSON.stringify({
+        message: "Invalid auth header.",
+      })
+    );
+    return ERROR_401;
+  }
   let authHeaderSplited = authHeader && authHeader.split(" ");
   const token = authHeaderSplited && authHeaderSplited[1];
 
@@ -68,7 +76,17 @@ export const loginRoute = (req: IncomingMessage, res: ServerResponse) => {
     // Parse request body as JSON
     const credentials = JSON.parse(body);
 
-    // TODO: validate that the body has the "shape" you are expect: { username: <username>, password: <password>}
+    const validRequest: boolean = Object.keys(credentials).length == 2 &&
+                                  'username' in credentials && 
+                                  'password' in credentials;
+    if (!validRequest) {
+      res.statusCode = 400;
+      res.end(
+        JSON.stringify({
+        message: "Bad request.",
+      }));
+      return;
+    }
     // Check if username and password match
     const user = users.find((u) => u.username === credentials.username);
     if (!user) {
@@ -121,10 +139,22 @@ export const signupRoute = (req: IncomingMessage, res: ServerResponse) => {
     // Parse request body as JSON
     const credentials = JSON.parse(body);
 
-    // TODO: you need to validate the request.
+    const validRequest: boolean = Object.keys(credentials).length == 2 &&
+                                  'username' in credentials && 
+                                  'password' in credentials;
+    if (!validRequest) {
+      res.statusCode = 400;
+      res.end(
+        JSON.stringify({
+          message: "Invalid sign up request.",
+        })
+      );
+      return;
+    }
+
     const username = credentials.username;
     const password = await bcrypt.hash(credentials.password, 10);
-    users.push({ id: uuidv4(), username, password });
+    users.push({ id: uuidv4(), username, password, permission: "W" });
 
     res.statusCode = 201; // Created a new user!
     res.end(
