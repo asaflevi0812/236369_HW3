@@ -4,25 +4,22 @@ import * as bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 
 import { ERROR_401 } from "./const.js";
+import User from "./models/user.js"
 
 // TODO: You need to config SERCRET_KEY in render.com dashboard, under Environment section.
 const secretKey = process.env.SECRET_KEY;
-
-// TODO: Replace with your user database
-const users = [];
 
 // Verify JWT token
 const verifyJWT = (token: string) => {
   try {
     return jwt.verify(token, secretKey);
-    // Read more here: https://github.com/auth0/node-jsonwebtoken#jwtverifytoken-secretorpublickey-options-callback
-    // Read about the diffrence between jwt.verify and jwt.decode.
   } catch (err) {
     return false;
   }
 };
 
-// Middelware for all protected routes. You need to expend it, implement premissions and handle with errors.
+// Middelware for all protected routes. 
+// TODO: You need to expend it, implement premissions and handle with errors.
 export const protectedRout = (req: IncomingMessage, res: ServerResponse) => {
   let authHeader = req.headers["authorization"] as string;
 
@@ -77,8 +74,8 @@ export const loginRoute = (req: IncomingMessage, res: ServerResponse) => {
     const credentials = JSON.parse(body);
 
     const validRequest: boolean = Object.keys(credentials).length == 2 &&
-                                  'username' in credentials && 
-                                  'password' in credentials;
+                                  credentials.hasOwnProperty('username') && 
+                                  credentials.hasOwnProperty('password');
     if (!validRequest) {
       res.statusCode = 400;
       res.end(
@@ -88,7 +85,7 @@ export const loginRoute = (req: IncomingMessage, res: ServerResponse) => {
       return;
     }
     // Check if username and password match
-    const user = users.find((u) => u.username === credentials.username);
+    const user = await User.findOne((u) => u.username === credentials.username);
     if (!user) {
       res.statusCode = 401;
       res.end(
@@ -140,8 +137,8 @@ export const signupRoute = (req: IncomingMessage, res: ServerResponse) => {
     const credentials = JSON.parse(body);
 
     const validRequest: boolean = Object.keys(credentials).length == 2 &&
-                                  'username' in credentials && 
-                                  'password' in credentials;
+                                  credentials.hasOwnProperty('username') && 
+                                  credentials.hasOwnProperty('password');
     if (!validRequest) {
       res.statusCode = 400;
       res.end(
@@ -154,7 +151,7 @@ export const signupRoute = (req: IncomingMessage, res: ServerResponse) => {
 
     const username = credentials.username;
     const password = await bcrypt.hash(credentials.password, 10);
-    users.push({ id: uuidv4(), username, password, permission: "W" });
+    new User({ id: uuidv4(), username, password, permission: "W" }).save();
 
     res.statusCode = 201; // Created a new user!
     res.end(
