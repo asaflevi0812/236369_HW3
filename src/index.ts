@@ -15,13 +15,17 @@ await mongoose.connect(process.env.DB_URI);
 
 const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   const route = createRoute(req.url, req.method);
-  Object.keys(routes).forEach((routeRegex: string) => {
+  let foundRoute: boolean = false;
+  Object.keys(routes).every((routeRegex: string) => {
     if (route.match(routeRegex)) {
       routes[routeRegex](req, res);
-      return;
+      foundRoute = true;
+      return false;
     }
+    return true;
   })
-  defaultRoute(req, res);
+  if (!foundRoute)
+    defaultRoute(req, res);
 });
 
 server.listen(port);

@@ -6,6 +6,11 @@ import { v4 as uuidv4 } from "uuid";
 import { ERROR_401 } from "./const.js";
 import User from "./models/user.js"
 
+// enable environment variables
+import * as dotenv from "dotenv";
+
+dotenv.config();
+
 // TODO: You need to config SERCRET_KEY in render.com dashboard, under Environment section.
 const secretKey = process.env.SECRET_KEY;
 
@@ -70,12 +75,18 @@ export const loginRoute = (req: IncomingMessage, res: ServerResponse) => {
     body += chunk.toString();
   });
   req.on("end", async () => {
-    // Parse request body as JSON
-    const credentials = JSON.parse(body);
+    let credentials: any;
+    let validRequest: boolean = true;
+    try {
+      credentials = await JSON.parse(body);
+    } catch(e) {
+      validRequest = false;
+    }
 
-    const validRequest: boolean = Object.keys(credentials).length == 2 &&
-                                  credentials.hasOwnProperty('username') && 
-                                  credentials.hasOwnProperty('password');
+    validRequest = validRequest &&
+                   Object.keys(credentials).length == 2 &&
+                   credentials.hasOwnProperty('username') && 
+                   credentials.hasOwnProperty('password');
     if (!validRequest) {
       res.statusCode = 400;
       res.end(
@@ -85,7 +96,7 @@ export const loginRoute = (req: IncomingMessage, res: ServerResponse) => {
       return;
     }
     // Check if username and password match
-    const user = await User.findOne((u) => u.username === credentials.username);
+    const user = await User.findOne({ username : credentials.username});
     if (!user) {
       res.statusCode = 401;
       res.end(
@@ -96,8 +107,6 @@ export const loginRoute = (req: IncomingMessage, res: ServerResponse) => {
       return;
     }
 
-    // bcrypt.hash create single string with all the informatin of the password hash and salt.
-    // Read more here: https://en.wikipedia.org/wiki/Bcrypt
     // Compare password hash & salt.
     const passwordMatch = await bcrypt.compare(
       credentials.password,
@@ -134,11 +143,18 @@ export const signupRoute = (req: IncomingMessage, res: ServerResponse) => {
   });
   req.on("end", async () => {
     // Parse request body as JSON
-    const credentials = JSON.parse(body);
+    let credentials: any;
+    let validRequest: boolean = true;
+    try {
+      credentials = await JSON.parse(body);
+    } catch(e) {
+      validRequest = false;
+    }
 
-    const validRequest: boolean = Object.keys(credentials).length == 2 &&
-                                  credentials.hasOwnProperty('username') && 
-                                  credentials.hasOwnProperty('password');
+    validRequest = validRequest &&
+                   Object.keys(credentials).length == 2 &&
+                   credentials.hasOwnProperty('username') && 
+                   credentials.hasOwnProperty('password');
     if (!validRequest) {
       res.statusCode = 400;
       res.end(
@@ -148,10 +164,37 @@ export const signupRoute = (req: IncomingMessage, res: ServerResponse) => {
       );
       return;
     }
+    
+    // Check if username and password match
+    const user = await User.findOne({username: credentials.username});
+    if (user) {
+      res.statusCode = 400;
+      res.end(
+        JSON.stringify({
+          message: "Username is taken.",
+        })
+      );
+      return;
+    }
+
+    if (credentials.password === "") {
+      res.statusCode = 400;
+      res.end(
+        JSON.stringify({
+          message: "Password is empty.",
+        })
+      );
+      return;
+    }
 
     const username = credentials.username;
     const password = await bcrypt.hash(credentials.password, 10);
-    new User({ id: uuidv4(), username, password, permission: "W" }).save();
+    const newUser = new User({ id: uuidv4(), 
+                               username: username, 
+                               password: password, 
+                               permission: "W" });
+    const dbRes = await newUser.save();
+    console.log(dbRes);
 
     res.statusCode = 201; // Created a new user!
     res.end(
