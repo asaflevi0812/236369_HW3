@@ -14,18 +14,24 @@ const port = process.env.PORT || 3000;
 await mongoose.connect(process.env.DB_URI);
 
 const server = createServer((req: IncomingMessage, res: ServerResponse) => {
-  const route = createRoute(req.url, req.method);
-  let foundRoute: boolean = false;
-  Object.keys(routes).every((routeRegex: string) => {
-    if (route.toLowerCase().match(`^${routeRegex}\$`)) {
-      routes[routeRegex](req, res);
-      foundRoute = true;
-      return false;
-    }
-    return true;
-  })
-  if (!foundRoute)
-    defaultRoute(req, res);
+  try {
+    const route = createRoute(req.url, req.method);
+    let foundRoute: boolean = false;
+    Object.keys(routes).every((routeRegex: string) => {
+      if (route.toLowerCase().match(`^${routeRegex}\$`)) {
+        routes[routeRegex](req, res);
+        foundRoute = true;
+        return false;
+      }
+      return true;
+    })
+    if (!foundRoute)
+      defaultRoute(req, res);
+  } catch (e) {
+    console.log(e);
+    // server failed to do something, but we still want to be able to handle more requests
+    // so we catch and continue
+  }
 });
 
 server.listen(port);

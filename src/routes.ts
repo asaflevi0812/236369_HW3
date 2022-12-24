@@ -99,6 +99,9 @@ export const validateRequest = async(req: IncomingMessage,
       bodyJSON = await JSON.parse(body);
     } catch(e) {
       validRequest = false;
+      res.statusCode = 400;
+      res.end(JSON.stringify({message: 'Bad request'}));
+      return;
     }
 
     // all required fields exist, no non-optional fields exist.
