@@ -17,7 +17,7 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   const route = createRoute(req.url, req.method);
   let foundRoute: boolean = false;
   Object.keys(routes).every((routeRegex: string) => {
-    if (route.match(routeRegex)) {
+    if (route.toLowerCase().match(`^${routeRegex}\$`)) {
       routes[routeRegex](req, res);
       foundRoute = true;
       return false;

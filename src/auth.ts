@@ -65,8 +65,28 @@ export const protectedRout = (req: IncomingMessage, res: ServerResponse) => {
   }
 
   // We are good!
+  console.log(user);
   return user;
 };
+
+export const checkPermission = async(user: any, permissions: string[]) : Promise<boolean> => {
+  if (!user.hasOwnProperty("id")) {
+    return false;
+  }
+  const userFromDB = await User.findOne({id: user.id});
+  return permissions.find((permission) => permission === userFromDB.permission) != undefined
+}
+
+export const assertPermission = async(user: any, 
+                                      permissions: string[], 
+                                      res: ServerResponse) : Promise<boolean> => {
+  if (!await checkPermission(user, permissions)) {
+    res.statusCode = 403;
+    res.end(JSON.stringify({message: 'insufficient permissions.'}));
+    return false;
+  }
+  return true;
+}
 
 export const loginRoute = (req: IncomingMessage, res: ServerResponse) => {
   // Read request body.
