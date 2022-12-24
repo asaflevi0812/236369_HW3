@@ -75,6 +75,8 @@ export const validateRequest = async(req: IncomingMessage,
   // check for unauthorized
   const user = protectedRout(req, res);
   if (user == ERROR_401) {
+    res.statusCode = 401;
+    res.end(JSON.stringify({message: 'unauthorized.'}));
     return;
   }
   // check for forbidden
